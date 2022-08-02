@@ -105,7 +105,8 @@ class AnalysisBackend(object):
     if cls.parser is not None:
       parser: argparse.ArgumentParser = cls.parser
     else:
-      parser = argparse.ArgumentParser(description="Use {} as a backend for DeepState".format(cls.NAME))
+      parser = argparse.ArgumentParser(
+          description=f"Use {cls.NAME} as a backend for DeepState")
 
     # Compilation/instrumentation support, only if COMPILER is set in EXECUTABLES
     # TODO: extends compilation interface for symex engines that "compile" source to
@@ -182,7 +183,7 @@ class AnalysisBackend(object):
 
     # if configuration is specified, parse and replace argument instantiations
     if args.config:
-      _args.update(cls.build_from_config(args.config)) # type: ignore
+      _args |= cls.build_from_config(args.config)
 
       # Cleanup: force --no_exit_compile to be on, meaning if user specifies a `[test]` section,
       # execution will continue. Delete config as well
@@ -200,7 +201,7 @@ class AnalysisBackend(object):
       logger.setLevel(LOG_LEVEL_INT_TO_STR[_args["min_log_level"]])
     else:
       L.debug("Using log level from $DEEPSTATE_LOG.")
-      
+
     cls._ARGS = args
     return cls._ARGS
 
@@ -220,7 +221,7 @@ class AnalysisBackend(object):
     :param include_sections: if true, parse all sections, and return a Dict[str, Dict[str, Any]] where keys are section names
     """
 
-    context: Dict[str, Dict[str, Any]] = dict() # type: ignore
+    context: Dict[str, Dict[str, Any]] = {}
 
     # reserved sections are ignored by executors, but can be used by other auxiliary tools
     # to reason about with.
@@ -242,24 +243,20 @@ class AnalysisBackend(object):
     for section, kv in parser._sections.items(): # type: ignore
 
       # if `include_sections` is not set, parse only from allowed_sections
-      if not include_sections:
-        if section not in allowed_sections:
-          continue
-        elif section in reserved_sections:
-          continue
-
+      if not include_sections and (section not in allowed_sections
+                                   or section in reserved_sections):
+        continue
       # if `include_sections`, keys are now all section names
       if include_sections:
-        _context = context[section] = dict()
+        _context = context[section] = {}
       else:
         _context = context
 
       for key, val in kv.items():
 
         # check if key should be parsed
-        if allowed_keys is not None:
-          if key not in allowed_keys:
-            continue
+        if allowed_keys is not None and key not in allowed_keys:
+          continue
 
         if isinstance(val, list):
           _context[key].append(val)
